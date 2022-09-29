@@ -28,6 +28,8 @@ type ValidationContext struct {
 	CertificateStore X509CertificateStore
 	IdAttribute      string
 	Clock            *Clock
+
+	ParseFn func([]byte) (*x509.Certificate, error)
 }
 
 func NewDefaultValidationContext(certificateStore X509CertificateStore) *ValidationContext {
@@ -454,7 +456,13 @@ func (ctx *ValidationContext) verifyCertificate(sig *types.Signature) (*x509.Cer
 			return nil, errors.New("Failed to parse certificate")
 		}
 
-		cert, err = x509.ParseCertificate(certData)
+		parseFn := ctx.ParseFn
+
+		if parseFn == nil {
+			parseFn = x509.ParseCertificate
+		}
+
+		cert, err = parseFn(certData)
 		if err != nil {
 			return nil, err
 		}
