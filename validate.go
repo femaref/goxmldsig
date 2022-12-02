@@ -2,11 +2,13 @@ package dsig
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
 	"regexp"
 
 	"github.com/beevik/etree"
@@ -228,15 +230,22 @@ func (ctx *ValidationContext) verifySignedInfo(sig *types.Signature, canonicaliz
 
 	hashed := hash.Sum(nil)
 
-	pubKey, ok := cert.PublicKey.(*rsa.PublicKey)
-	if !ok {
+	switch pubKey := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		// Verify that the private key matching the public key from the cert was what was used to sign the 'SignedInfo' and produce the 'SignatureValue'
+		err = rsa.VerifyPKCS1v15(pubKey, signatureAlgorithm, hashed[:], decodedSignature)
+		if err != nil {
+			return err
+		}
+	case *ecdsa.PublicKey:
+		r, s := new(big.Int), new(big.Int)
+		r.SetBytes(decodedSignature[:32])
+		s.SetBytes(decodedSignature[32:])
+		if !ecdsa.Verify(pubKey, hashed[:], r, s) {
+			return errors.New("signature does not verify")
+		}
+	default:
 		return errors.New("Invalid public key")
-	}
-
-	// Verify that the private key matching the public key from the cert was what was used to sign the 'SignedInfo' and produce the 'SignatureValue'
-	err = rsa.VerifyPKCS1v15(pubKey, signatureAlgorithm, hashed[:], decodedSignature)
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -75,6 +75,8 @@ func init() {
 	for hash, id := range signatureMethodIdentifiers {
 		signatureMethodsByIdentifier[id] = hash
 	}
+
+	signatureMethodsByIdentifier["http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"] = crypto.SHA256
 }
 
 var signatureMethodIdentifiers = map[crypto.Hash]string{
