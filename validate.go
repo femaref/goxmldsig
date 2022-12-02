@@ -264,6 +264,7 @@ func (ctx *ValidationContext) validateSignature(el *etree.Element, sig *types.Si
 	for _, _ref := range sig.SignedInfo.References {
 		if _ref.URI == "" || _ref.URI[1:] == idAttr {
 			ref = &_ref
+			break
 		}
 	}
 
